@@ -13,7 +13,7 @@ const countriesContainer = document.querySelector('.countries');
 // 👉 Each line of code waits for previous line to finish;
 // 👎 Long-running operations block code execution
 
-// Now this can create problems when line of code takes a long time to run. For example, in this current line of code, we have an alert statement
+// Now this can create problems when line of code takes a long time to run. For example, we have an alert statement
 // Now, as we've experienced in the past, this alert window will block the code execution, right? So nothing will happen on the page until we click that OK button.
 // Because alert is blocking synchronous code.
 
@@ -69,7 +69,71 @@ const countriesContainer = document.querySelector('.countries');
 // that got very popular back in the day, and so it's still used today, even though we don't use XML anymore. So instead, most APIs these days use the JSON data format.
 // So JSON is the most popular data format today because it's basically just a JavaScript object, but converted to a string.
 
-// OLD SCHOOL ONE(XMLHttpRequest)
+// OLD SCHOOL(XMLHttpRequest)
+// https://restcountries.com/#api-endpoints-v2-all
 
-const request = new XMLHttpRequest();
-request.open('GET', ''); // type,
+const getCountryData = function (country) {
+    const request = new XMLHttpRequest();
+    request.open('GET', `https://restcountries.com/v2/name/${country}`); // type, url
+    request.send(); // send off the request so that request then fetches the data in the background, and then once that is done, it will emit the load event,
+
+    // console.log(request.responseText); // nothing as expected
+
+    // as soon as the data arrives callback function will be called
+    request.addEventListener('load', function () {
+        const [data] = JSON.parse(this.responseText);
+        console.log(data);
+
+        const {
+            flag,
+            region,
+            name: countryName,
+            population,
+            currencies,
+            languages,
+        } = data;
+
+        const [cur] = currencies;
+        const [lang] = languages;
+
+        countriesContainer.style.opacity = 1;
+        countriesContainer.insertAdjacentHTML(
+            'beforeend',
+            `
+        <article class="country">
+            <img class="country__img" src="${flag}" />
+            <div class="country__data">
+                <h3 class="country__name">${countryName}</h3>
+                <h4 class="country__region">${region}</h4>
+                <p class="country__row"><span>👫</span>${(
+                    +population / 1_000_000
+                ).toFixed(1)} people</p>
+                <p class="country__row"><span>🗣️</span>${lang.name}</p>
+                <p class="country__row"><span>💰</span>${cur.name}</p>
+            </div>
+        </article>
+    `
+        );
+    });
+};
+
+getCountryData('russian');
+getCountryData('usa');
+getCountryData('germany');
+
+///////////////////////////////////////////////////////////////////////////////////
+// How the Web Works_ Requests and Responses
+// Whenever we try to access a Web server, the browser which is the client, sends a request to the server and the server will then send back a response
+// and that response contains the data or the Web page that we requested. And that's right, this process works the exact same way no matter if we're accessing
+// an entire Web page or just some data from a Web API.
+// And this whole process actually has a name and it's called the Request-response model or also the Client-server architecture.
+
+// Domain name is actually not the real address of the server that we're trying to access. It's really just a nice name that is easy for us to memorize.
+// But what this means is that we need a way of kind of converting the domain name to the real address of the server. And that happens through a so-called DNS.
+// So DNS stands for domain name server and domain name servers are a special kind of server. So they are basically like the phone books of the Internet.
+// So the first step that happens when we access any Web server is that the browser makes a request to a DNS and this special server will then simply match the
+// web address of the URL to the server's real IP address. Actually this all happens through your Internet service provider, but the complete details don't really
+// matter here. What you need to retain from this first part is that the domain is not the real address and that a DNS will convert the domain to the real IP address.
+// And then after the real IP address has been sent back to the browser, we can finally call it. So this is how the real address looks like (https://104.27.142.889:443)
+// So it still has the protocol, but then comes the IP address. And also the port that we access on the server. And this port number is really just to identify a specific
+// service that's running on a server. So you can think of it like a sub address. This port number has nothing to do with the /rest/v2 resource
