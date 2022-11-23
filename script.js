@@ -434,9 +434,11 @@ const renderCountry = function (
 };
 
 const getCountryData = async function (country) {
-    const request = await fetch(`https://restcountries.com/v2/name/${country}`); // immediately return a promise <pending>
+    const response = await fetch(
+        `https://restcountries.com/v2/name/${country}`
+    ); // immediately return a promise <pending>
 
-    // the promise is actually fulfilled so as soon as the result is available
+    // the promise is actually fulfilled or requested so as soon as the result is available
     // request
     // .then(function (response) {
     // console.log('keys');
@@ -451,89 +453,84 @@ const getCountryData = async function (country) {
     // Now, the problem is that this json function itself is actually also an asynchronous function and so what that means is that it will also return a new
     // promise. And that's all a bit confusing and I really don't know why it was implemented like this, but this is just how it works.
     // })
-    await request.json().then(data => {
-        const [obj] = data;
-        console.log(obj);
+    const data = await response.json();
 
-        const {
-            flag,
-            region,
-            name: countryName,
-            population,
-            currencies,
-            languages,
-            borders,
-        } = obj;
+    const [obj] = data;
+    console.log(obj);
 
-        const [cur] = currencies;
-        const [lang] = languages;
+    const {
+        flag,
+        region,
+        name: countryName,
+        population,
+        currencies,
+        languages,
+        borders,
+    } = obj;
 
-        countriesContainer.style.opacity = 1;
-        renderCountry({
-            flag,
-            countryName,
-            region,
-            population,
-            lang: lang.name,
-            cur: cur.name,
-        });
+    const [cur] = currencies;
+    const [lang] = languages;
 
-        const [anyNeighbour] = borders;
+    countriesContainer.style.opacity = 1;
 
-        if (!anyNeighbour) return;
-
-        for (const neighbour of borders) {
-            (async () => {
-                const request2 = await fetch(
-                    `https://restcountries.com/v2/alpha/${neighbour}`
-                );
-
-                await request2.json().then(obj => {
-                    const {
-                        flag,
-                        region,
-                        name: countryName,
-                        population,
-                        currencies,
-                        languages,
-                    } = obj;
-
-                    const [cur] = currencies;
-                    const [lang] = languages;
-
-                    renderCountry(
-                        {
-                            flag,
-                            countryName,
-                            region,
-                            population,
-                            lang: lang.name,
-                            cur: cur.name,
-                        },
-                        'neighbour'
-                    );
-                });
-            })();
-        }
+    renderCountry({
+        flag,
+        countryName,
+        region,
+        population,
+        lang: lang.name,
+        cur: cur.name,
     });
 
-    // recap: The first part I think, is pretty straight forward which is this fetch function here returning a promise and then we handled that promise using the then
-    // method, but then to actually read the data from the response, we need to call the json method on that response object. Now 'response.json()' will also return a
-    // promise. And so if we then return that promise from 'then' method then basically all of this becomes a new promise itself. And so since this is a promise
-    // we can then again, call the then method on that. And so then again we have a callback and this time we get access to the data, because the resolved value of
-    // this promise here is going to be the data itself. So basically the data that we're looking for.
+    const [anyNeighbour] = borders;
+
+    if (!anyNeighbour) return;
+
+    for (const neighbour of borders) {
+        (async () => {
+            const response2 = await fetch(
+                `https://restcountries.com/v2/alpha/${neighbour}`
+            );
+
+            const obj = await response2.json();
+
+            const {
+                flag,
+                region,
+                name: countryName,
+                population,
+                currencies,
+                languages,
+            } = obj;
+
+            const [cur] = currencies;
+            const [lang] = languages;
+
+            renderCountry(
+                {
+                    flag,
+                    countryName,
+                    region,
+                    population,
+                    lang: lang.name,
+                    cur: cur.name,
+                },
+                'neighbour'
+            );
+        })();
+    }
 };
 
 getCountryData('russian')
     .then(async () => {
-        await getCountryData('usa');
+        return await getCountryData('usa');
     })
     .then(async () => {
-        await getCountryData('portugal');
+        return await getCountryData('portugal');
     })
     .then(async () => {
-        await getCountryData('germany');
+        return await getCountryData('germany');
     })
     .then(async () => {
-        await getCountryData('china');
+        return await getCountryData('china');
     });
