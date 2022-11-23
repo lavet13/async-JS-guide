@@ -407,9 +407,9 @@ request
     });
 */
 
-///////////////////////////////////////////////////////
-// Consuming Promises
+/////////////////////////////////////////////////////////////////////////////
 
+/*
 const renderCountry = function (
     { flag, countryName, region, population, lang, cur },
     className = ''
@@ -534,3 +534,97 @@ getCountryData('russian')
     .then(async () => {
         return await getCountryData('china');
     });
+*/
+
+//////////////////////////////////////////////////
+// Handling Rejected Promises
+
+const renderCountry = function (
+    { flag, countryName, region, population, lang, cur },
+    className = ''
+) {
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+        <article class="country ${className}">
+            <img class="country__img" src="${flag}" />
+            <div class="country__data">
+                <h3 class="country__name">${countryName}</h3>
+                <h4 class="country__region">${region}</h4>
+                <p class="country__row"><span>👫</span>${(
+                    +population / 1_000_000
+                ).toFixed(1)} people</p>
+                <p class="country__row"><span>🗣️</span>${lang}</p>
+                <p class="country__row"><span>💰</span>${cur}</p>
+            </div>
+        </article>
+    `
+    );
+};
+
+const getCountryData = function (country) {
+    fetch(`https://restcountries.com/v2/name/${country}`)
+        .then(response => response.json())
+        .then(data => {
+            const [obj] = data;
+            console.log(obj);
+
+            const {
+                flag,
+                region,
+                name: countryName,
+                population,
+                currencies,
+                languages,
+                borders,
+            } = obj;
+
+            const [cur] = currencies;
+            const [lang] = languages;
+
+            countriesContainer.style.opacity = 1;
+
+            renderCountry({
+                flag,
+                countryName,
+                region,
+                population,
+                lang: lang.name,
+                cur: cur.name,
+            });
+
+            const [anyNeighbour] = borders;
+
+            if (!anyNeighbour) return;
+
+            return fetch(`https://restcountries.com/v2/alpha/${anyNeighbour}`);
+        })
+        .then(response => response.json())
+        .then(obj => {
+            const {
+                flag,
+                region,
+                name: countryName,
+                population,
+                currencies,
+                languages,
+            } = obj;
+
+            const [cur] = currencies;
+            const [lang] = languages;
+
+            renderCountry(
+                {
+                    flag,
+                    countryName,
+                    region,
+                    population,
+                    lang: lang.name,
+                    cur: cur.name,
+                },
+                'neighbour'
+            );
+        });
+};
+
+getCountryData('portugal');
