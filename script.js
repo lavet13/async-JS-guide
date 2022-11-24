@@ -539,6 +539,11 @@ getCountryData('russian')
 //////////////////////////////////////////////////
 // Handling Rejected Promises
 
+const renderError = function (msg) {
+    countriesContainer.removeChild(countriesContainer.lastChild);
+    countriesContainer.insertAdjacentText('beforeend', msg);
+};
+
 const renderCountry = function (
     { flag, countryName, region, population, lang, cur },
     className = ''
@@ -564,7 +569,10 @@ const renderCountry = function (
 
 const getCountryData = function (country) {
     fetch(`https://restcountries.com/v2/name/${country}`)
-        .then(response => response.json())
+        .then(
+            response => response.json()
+            // err => alert(err)
+        )
         .then(data => {
             const [obj] = data;
             console.log(obj);
@@ -599,7 +607,10 @@ const getCountryData = function (country) {
 
             return fetch(`https://restcountries.com/v2/alpha/${anyNeighbour}`);
         })
-        .then(response => response.json())
+        .then(
+            response => response.json()
+            // err => alert(err)
+        )
         .then(obj => {
             const {
                 flag,
@@ -624,7 +635,21 @@ const getCountryData = function (country) {
                 },
                 'neighbour'
             );
+        })
+        .catch(err => {
+            console.error(`${err.message} 🔥`);
+            renderError(`Something went wrong 🔥🔥 ${err.message}. Try later!`);
+        }) // errors basically propogate down the chain until they are caught and only if they're not caught anywhere then we get that Uncaught error
+        .finally(() => {
+            // use this method when something is needed to be happen no matter the result of the promise
+            // good example of that is to hide a loading spinner like these rotating circles that you see everywhere
+            countriesContainer.style.opacity = 1; // happens no matter if the promise is fulfilled or rejected
+            // that works because catch itself is also returns a promise
         });
 };
 
-getCountryData('portugal');
+btn.addEventListener('click', function () {
+    getCountryData('portugal');
+});
+
+getCountryData('dafsdfdas');
