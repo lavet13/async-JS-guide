@@ -568,9 +568,16 @@ const renderCountry = function (
 };
 
 const getCountryData = function (country) {
+    // the promise is fulfilled even if we passing random chars in argument "country" which is bad, we must fix that
     fetch(`https://restcountries.com/v2/name/${country}`)
         .then(
-            response => response.json()
+            response => {
+                if (!response.ok)
+                    throw new Error(
+                        `Country not found (${response.status}) 😐`
+                    ); // the promise is returned by "then" handler here
+                return response.json();
+            }
             // err => alert(err)
         )
         .then(data => {
@@ -637,14 +644,17 @@ const getCountryData = function (country) {
             );
         })
         .catch(err => {
+            // catch method will catch any errors that occur in any place in the whole promise chain and no matter where that is
+            // so errors basically propogate down the chain until they are caught and only if they're not caught anywhere then we get that Uncaught error
             console.error(`${err.message} 🔥`);
             renderError(`Something went wrong 🔥🔥 ${err.message}. Try later!`);
-        }) // errors basically propogate down the chain until they are caught and only if they're not caught anywhere then we get that Uncaught error
+        })
         .finally(() => {
-            // use this method when something is needed to be happen no matter the result of the promise
+            // the callback here will always be called whatever happens with the promise. So no matter if the promise is fulfilled or rejected this callback function
+            // that we define here is gonna be called always.
             // good example of that is to hide a loading spinner like these rotating circles that you see everywhere
-            countriesContainer.style.opacity = 1; // happens no matter if the promise is fulfilled or rejected
             // that works because catch itself is also returns a promise
+            countriesContainer.style.opacity = 1; // happens no matter if the promise is fulfilled or rejected
         });
 };
 
