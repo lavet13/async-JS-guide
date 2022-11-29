@@ -144,7 +144,7 @@ getCountryData('germany');
 // So once(поскольку) we have the real IP address, a TCP socket connection is established between the browser and the server. And so they are now finally connected.
 // And this connection is typically kept alive for the entire time that it takes to transfer all files of the Website or all data. Now what are TCP and IP?
 // Well TCP is the Transmission Control Protocol. And IP is the Internet Protocol. And together they are communication protocols that define exactly how data travels across
-// the Web. They are basically the Internet's fundamental control system.
+// the Web.
 // Now it's time to finally make our request. And the request that we make is an HTTP request, where HTTP stands for Hypertext Transfer Protocol. So after TCP/IP, HTTP is another
 // communication protocol. And by the way, a communication protocol is simply a system of rules that allows two or more parties to communicate. Now in case of HTTP, it's just
 // a protocol that allows clients and Web servers to communicate. And that works by sending requests and response messages from client to server and back.
@@ -409,7 +409,6 @@ request
 
 /////////////////////////////////////////////////////////////////////////////
 
-/*
 const renderCountry = function (
     { flag, countryName, region, population, lang, cur },
     className = ''
@@ -438,7 +437,7 @@ const getCountryData = async function (country) {
         `https://restcountries.com/v2/name/${country}`
     ); // immediately return a promise <pending>
 
-    // the promise is actually fulfilled or requested so as soon as the result is available
+    // the promise is actually fulfilled or rejected so as soon as the result is available
     // request
     // .then(function (response) {
     // console.log('keys');
@@ -523,18 +522,17 @@ const getCountryData = async function (country) {
 
 getCountryData('russian')
     .then(async () => {
-        return await getCountryData('usa');
+        return getCountryData('usa');
     })
     .then(async () => {
-        return await getCountryData('portugal');
+        return getCountryData('portugal');
     })
     .then(async () => {
-        return await getCountryData('germany');
+        return getCountryData('germany');
     })
     .then(async () => {
-        return await getCountryData('china');
+        return getCountryData('china');
     });
-*/
 
 //////////////////////////////////////////////////
 // Handling Rejected Promises
@@ -950,7 +948,7 @@ whereAmI(-33.933, 18.474);
 
 // fetch('https://someurl.com/api').then(res => console.log(res));
 // And as always the asynchronous fetch operation will happen in the web APIs environment. And again, that's because otherwise we would be blocking the call stack and
-// create a huge lag in our application. Finally, we use the then method on the promise returned by the fetch function. And this will also register a callback in the
+// create a huge lag in our application. Finally, we use the "then" method on the promise returned by the fetch function. And this will also register a callback in the
 // web APIs environment so that we can react to the future resolved value of the promise. So this callback is associated with a promise that is fetching the data
 // from the API. And that's gonna be important later on. So, with this, we have now executed all the top level of code. So, all the code that is not inside any callback
 // function in asynchronous way. We also have the image loading in the background and some data is being fetched from an API. And so now it's time for this to get
@@ -1014,3 +1012,46 @@ whereAmI(-33.933, 18.474);
 // Now, this is usually never a problem, but I just wanted to mention this possibility here anyways, who knows maybe this will be an interview question for you someday.
 // And if so, you'd now know the answer. But anyway, as you can hopefully see the idea of running asynchronous code with regular callbacks and with microtasks coming
 // from promises is very similar. The only difference is that they go into different queues and that the event loop gives microtasks priority over regular calllbacks.
+
+/////////////////////////////////////////////////////
+// The Event Loop in Practice
+/*
+console.log('Test start');
+
+setTimeout(() => {
+    // callback in the callback queue. Callback that is in the callback queue should be executed as soon as there are no callbacks in the micro-tasks queue
+    console.log('0 sec timer');
+}, 0);
+
+Promise.resolve('Resolved promise 1').then(res => console.log(res)); // callback in the micro-tasks queue. Callback in micro-tasks queue should be executed first
+
+Promise.resolve('Resolved promise 2').then(res => {
+    // callback function takes a long time, so micro-task, it is not the asynchronous task itself.
+    // So the promise itself will still be resolved immediately, but then the micro-task that it contains, so that it puts on the micro-tasks queue. That's the one
+    // that will take a long time.
+    for (let i = 0; i < 1000000000; i++) {}
+
+    console.log(res);
+});
+
+// if one of the micro-tasks takes a long time to run, then the timer will actually be delayed and not run after 0 seconds. So instead it will run a little bit
+// later just after the micro-task is actually done with it's work.
+
+console.log('Test end');
+*/
+
+///////////////////////////////////////////////////
+// Building a Simple Promise
+const lotteryPromise = new Promise(function (resolve, reject) {
+    // resolve and reject both are functions
+    if (Math.random() * 100 + 1 >= 50) {
+        resolve('You WIN 😀'); // Into the resolve function we pass the fulfilled value of the promise so that it can later be consumed with the "then" method.
+        // Again, whatever value we pass into the resolve function is gonna be the result of the promise that will be available in the "then" handler.
+    }
+
+    reject('You LOST your money 😂');
+});
+// takes one arg which is executor function. This function contains the asynchronous behavior that we're trying to handle with the promise. This executor function
+// should eventually produce a result value. So the value that's basically gonna be the future value of the promise.
+
+lotteryPromise.then(res => console.log(res)).catch(err => console.error(err));
