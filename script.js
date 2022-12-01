@@ -1044,14 +1044,51 @@ console.log('Test end');
 // Building a Simple Promise
 const lotteryPromise = new Promise(function (resolve, reject) {
     // resolve and reject both are functions
-    if (Math.random() * 100 + 1 >= 50) {
-        resolve('You WIN 😀'); // Into the resolve function we pass the fulfilled value of the promise so that it can later be consumed with the "then" method.
-        // Again, whatever value we pass into the resolve function is gonna be the result of the promise that will be available in the "then" handler.
-    }
+    console.log('Lottery draw is happening');
 
-    reject('You LOST your money 😂');
+    // in practice, most of the time all we actually do is to consume promises. And we usually only built promises to basically wrap old callback based functions
+    // into promises. And this is a process that we call promisifying. So basically promisifying means to convert callback based asynchronous behavior to promise
+    // based.
+    setTimeout(function () {
+        if (Math.random() * 100 + 1 >= 50) {
+            resolve('You WIN 😀'); // Into the resolve function we pass the fulfilled value of the promise so that it can later be consumed with the "then" method.
+            // Again, whatever value we pass into the resolve function is gonna be the result of the promise that will be available in the "then" handler.
+        } else {
+            reject(new Error('You LOST your money 😂'));
+        }
+    }, 2000);
 });
 // takes one arg which is executor function. This function contains the asynchronous behavior that we're trying to handle with the promise. This executor function
 // should eventually produce a result value. So the value that's basically gonna be the future value of the promise.
 
 lotteryPromise.then(res => console.log(res)).catch(err => console.error(err));
+
+// promisifying the set timeout function and create a wait function
+// const wait = function (seconds) {
+//     // this will then encapsulate the asynchronous operation even further
+//     return Promise.resolve(seconds).then(res =>
+//         setTimeout(() => console.log('indeed'), res)
+//     );
+// };
+
+const wait = function (seconds) {
+    // don't even need the reject function and that's because it's actually impossible for the timer to fail. Therefore we will never mark this promise as rejected.
+    // the callback function that we want to be called after a certain time is exactly the resolve function. And in this case, we're actually not even going to pass
+    // any resolved value into the resolve function because that's actually not mandatory. And so in the case of this timer, it's also not really necessary.
+    // And so in the case of a timer, it's also not really necessary to wait for some value. No resolved values are needed.
+    return new Promise(function (resolve) {
+        setTimeout(() => {
+            resolve(seconds);
+        }, seconds * 1000);
+    });
+};
+
+// consume this promise 😋
+wait(2).then(seconds => {
+    // We are not going to receive any resolved value, so we just leave this empty
+    console.log(`I waiter for ${seconds} seconds`);
+});
+
+wait(4).then(seconds => {
+    console.log(`I waited for ${seconds} seconds`);
+});
