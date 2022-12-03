@@ -407,6 +407,7 @@ request
     });
 */
 
+/*
 /////////////////////////////////////////////////////////////////////////////
 
 const renderCountry = function (
@@ -533,6 +534,7 @@ getCountryData('russian')
     .then(async () => {
         return getCountryData('china');
     });
+*/
 
 //////////////////////////////////////////////////
 // Handling Rejected Promises
@@ -1040,42 +1042,52 @@ Promise.resolve('Resolved promise 2').then(res => {
 console.log('Test end');
 */
 
+/*
 ///////////////////////////////////////////////////
 // Building a Simple Promise
 const lotteryPromise = new Promise(function (resolve, reject) {
-    // resolve and reject both are functions
+    // as soon as the promise constructor runs, it will automatically execute this executor function that we pass in
+    // as it executes this function here, it will do so by passing in two other arguments and those arguments are the resolve and reject functions
+    // this executor function is the function which will contain the asynchronous behavior that we're trying to handle with the promise. So this executor function
+    // should eventually produce a result value so the value that is basically gonna be the future value of the promise
     console.log('Lottery draw is happening');
 
+    // we did actually encapsulate some asynchronous behavior into this promise. And so that's the whole point of promises in the first place
     // in practice, most of the time all we actually do is to consume promises. And we usually only built promises to basically wrap old callback based functions
     // into promises. And this is a process that we call promisifying. So basically promisifying means to convert callback based asynchronous behavior to promise
     // based.
+
     setTimeout(function () {
         if (Math.random() * 100 + 1 >= 50) {
             resolve('You WIN 😀'); // Into the resolve function we pass the fulfilled value of the promise so that it can later be consumed with the "then" method.
             // Again, whatever value we pass into the resolve function is gonna be the result of the promise that will be available in the "then" handler.
         } else {
-            reject(new Error('You LOST your money 😂'));
+            reject(new Error('You LOST your money 😂')); // mark this promise as rejected
         }
     }, 2000);
-});
-// takes one arg which is executor function. This function contains the asynchronous behavior that we're trying to handle with the promise. This executor function
-// should eventually produce a result value. So the value that's basically gonna be the future value of the promise.
 
+    // recap: we created an executor function which is gonna be called by this promise constructor as soon as it runs, so basically immediately, then
+    // the promise calls this function and passes in the resolve and reject functions so that we can then use them to mark the promise as either resolved so as fulfilled
+    // or as rejected. This promise is eventually going to move to either the fulfilled state or the rejected state. So we always need to make sure that the promise
+    // ends up in one of these two states. And so now it's time to actually try this out by consuming this promise that we just built.
+});
+
+// lotteryPromise is going to be a promise object at this point, so as always we can call the "then" method, and then just like before, the "then" method needs a
+// callback function that is going to be called with the resolved value of the promise.
 lotteryPromise.then(res => console.log(res)).catch(err => console.error(err));
 
-// promisifying the set timeout function and create a wait function
+// i dunno what am i looking at
 // const wait = function (seconds) {
-//     // this will then encapsulate the asynchronous operation even further
-//     return Promise.resolve(seconds).then(res =>
-//         setTimeout(() => console.log('indeed'), res)
-//     );
+//     return Promise.resolve(seconds).then(seconds => {
+//         setTimeout(() => console.log(seconds), seconds * 1000);
+//     });
 // };
 
+// wait(2);
+
+// Promisifying setTimeout
 const wait = function (seconds) {
-    // don't even need the reject function and that's because it's actually impossible for the timer to fail. Therefore we will never mark this promise as rejected.
-    // the callback function that we want to be called after a certain time is exactly the resolve function. And in this case, we're actually not even going to pass
-    // any resolved value into the resolve function because that's actually not mandatory. And so in the case of this timer, it's also not really necessary.
-    // And so in the case of a timer, it's also not really necessary to wait for some value. No resolved values are needed.
+    // this will then encapsulate the asynchronous operation even further
     return new Promise(function (resolve) {
         setTimeout(() => {
             resolve(seconds);
@@ -1083,12 +1095,143 @@ const wait = function (seconds) {
     });
 };
 
-// consume this promise 😋
-wait(2).then(seconds => {
-    // We are not going to receive any resolved value, so we just leave this empty
-    console.log(`I waiter for ${seconds} seconds`);
-});
+// This is exactly what we did before, when we wanted to chain two sequential Ajax calls using the fetch function. So in the result of the first fetch, we would
+// create a new fetch and return it.
+wait(1)
+    .then(seconds => {
+        console.log(`1 second passed`);
+        return wait(1);
+    })
+    .then(seconds => {
+        console.log(`2 seconds passed`);
+        return wait(1);
+    })
+    .then(seconds => {
+        console.log(`3 seconds passed`);
+        return wait(1);
+    })
+    .then(seconds => {
+        console.log(`4 seconds passed`);
+    });
 
-wait(4).then(seconds => {
-    console.log(`I waited for ${seconds} seconds`);
-});
+// setTimeout(() => {
+//     console.log('1 second passed');
+//     setTimeout(() => {
+//         console.log('2 seconds passed');
+//         setTimeout(() => {
+//             console.log('3 seconds passed');
+//             setTimeout(() => {
+//                 console.log('4 seconds passed');
+//             }, 1000);
+//         }, 1000);
+//     }, 1000);
+// }, 1000);
+
+// There is also actually a way to very easy create a fulfilled or a rejected promise immediately
+// Again, the difference is that this one here will resolve immediately, no matter what we pass in
+Promise.resolve('Hello').then(string => console.log(string)); // static method on the promise constructor
+Promise.reject(new Error('Bye')).catch(string => console.error(string));
+*/
+
+//////////////////////////////////////////////////////////////
+// Promisifying the Geolocation API
+
+// getCurrentPosition basically offloaded it's work to the background so to the web API environment in the browser and then immediately it moved on to the next line
+// So this is very clearly a callback based API, so we have to pass in these different callbacks and so this is another great opportunity to promisify a callback
+// based API to a promise based API
+
+const getPosition = () => {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+};
+
+const renderError = function (msg) {
+    countriesContainer.removeChild(countriesContainer.lastChild);
+    countriesContainer.insertAdjacentText('beforeend', msg);
+};
+
+const renderCountry = function (
+    { flag, countryName, region, population, lang, cur },
+    className = ''
+) {
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+        <article class="country ${className}">
+            <img class="country__img" src="${flag}" />
+            <div class="country__data">
+                <h3 class="country__name">${countryName}</h3>
+                <h4 class="country__region">${region}</h4>
+                <p class="country__row"><span>👫</span>${(
+                    +population / 1_000_000
+                ).toFixed(1)} people</p>
+                <p class="country__row"><span>🗣️</span>${lang}</p>
+                <p class="country__row"><span>💰</span>${cur}</p>
+            </div>
+        </article>
+    `
+    );
+};
+
+const whereAmI = function () {
+    getPosition()
+        .then(position => {
+            const { latitude: lat, longitude: lng } = position.coords;
+
+            return fetch(
+                `https://geocode.xyz/${lat},${lng}?json=1&auth=56293066284436484796x58855`
+            );
+        })
+        .then(res => {
+            if (!res.ok)
+                throw new Error(`Problem with geocoding ${res.status}`);
+
+            return res.json();
+        })
+        .then(data => {
+            const { city, country } = data;
+            console.log(`You are in ${city}, ${country}`);
+
+            return fetch(`https://restcountries.com/v2/name/${country}`);
+        })
+        .then(res => {
+            if (!res.ok) throw new Error(`Country not found! ${res.status}`);
+
+            return res.json();
+        })
+        .then(data => {
+            const [obj] = data;
+            console.log(obj);
+
+            const {
+                flag,
+                region,
+                name: countryName,
+                population,
+                currencies,
+                languages,
+            } = obj;
+
+            const [cur] = currencies;
+            const [lang] = languages;
+
+            renderCountry({
+                flag,
+                countryName,
+                region,
+                population,
+                lang: lang.name,
+                cur: cur.name,
+            });
+        })
+        .catch(err => {
+            console.error(err.message);
+            renderError(err.message);
+        })
+        .finally(() => {
+            countriesContainer.style.opacity = 1;
+        });
+};
+
+btn.addEventListener('click', whereAmI);
