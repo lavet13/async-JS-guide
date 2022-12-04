@@ -407,7 +407,6 @@ request
     });
 */
 
-/*
 /////////////////////////////////////////////////////////////////////////////
 
 const renderCountry = function (
@@ -433,66 +432,51 @@ const renderCountry = function (
     );
 };
 
-const getCountryData = async function (country) {
-    const response = await fetch(
-        `https://restcountries.com/v2/name/${country}`
-    ); // immediately return a promise <pending>
+const getCountryData = function (country) {
+    let borders;
 
-    // the promise is actually fulfilled or rejected so as soon as the result is available
-    // request
-    // .then(function (response) {
-    // console.log('keys');
-    // console.log([...response.headers.keys()]);
-    // console.log('values');
-    // console.log([...response.headers.values()]);
-    // console.log([...response.headers]);
+    const getNextCountry = (url, msg = 'Cannot get border countries!') => {
+        return fetch(url).then(response => {
+            if (!response.ok) throw new Error(msg);
 
-    // actual data
-    // return response.json(); // promise, this method is available on all response objects that is coming from the fetch function, so all of the resolved values
-    // and indeed this response here is in fact a resolved value.
-    // Now, the problem is that this json function itself is actually also an asynchronous function and so what that means is that it will also return a new
-    // promise. And that's all a bit confusing and I really don't know why it was implemented like this, but this is just how it works.
-    // })
-    const data = await response.json();
+            return response.json();
+        });
+    };
 
-    const [obj] = data;
-    console.log(obj);
+    const getNextCountryData = function (obj) {
+        const {
+            flag,
+            region,
+            name: countryName,
+            population,
+            currencies,
+            languages,
+        } = obj;
 
-    const {
-        flag,
-        region,
-        name: countryName,
-        population,
-        currencies,
-        languages,
-        borders,
-    } = obj;
+        const [cur] = currencies;
+        const [lang] = languages;
 
-    const [cur] = currencies;
-    const [lang] = languages;
+        renderCountry(
+            {
+                flag,
+                countryName,
+                region,
+                population,
+                lang: lang.name,
+                cur: cur.name,
+            },
+            'neighbour'
+        );
+    };
 
-    countriesContainer.style.opacity = 1;
-
-    renderCountry({
-        flag,
-        countryName,
-        region,
-        population,
-        lang: lang.name,
-        cur: cur.name,
-    });
-
-    const [anyNeighbour] = borders;
-
-    if (!anyNeighbour) return;
-
-    for (const neighbour of borders) {
-        (async () => {
-            const response2 = await fetch(
-                `https://restcountries.com/v2/alpha/${neighbour}`
-            );
-
-            const obj = await response2.json();
+    return fetch(`https://restcountries.com/v2/name/${country}`) // immediately return a promise <pending>
+        .then(response => {
+            if (!response.ok) throw new Error('Cannot get countries!');
+            return response.json();
+        })
+        .then(data => {
+            const [obj] = data;
+            console.log(obj);
 
             const {
                 flag,
@@ -501,40 +485,44 @@ const getCountryData = async function (country) {
                 population,
                 currencies,
                 languages,
+                borders: b,
             } = obj;
+
+            borders = b;
 
             const [cur] = currencies;
             const [lang] = languages;
 
-            renderCountry(
-                {
-                    flag,
-                    countryName,
-                    region,
-                    population,
-                    lang: lang.name,
-                    cur: cur.name,
-                },
-                'neighbour'
-            );
-        })();
-    }
+            countriesContainer.style.opacity = 1;
+
+            renderCountry({
+                flag,
+                countryName,
+                region,
+                population,
+                lang: lang.name,
+                cur: cur.name,
+            });
+
+            const [anyNeighbour] = borders;
+
+            if (!anyNeighbour) return;
+        });
 };
 
-getCountryData('russian')
-    .then(async () => {
-        return getCountryData('usa');
-    })
-    .then(async () => {
-        return getCountryData('portugal');
-    })
-    .then(async () => {
-        return getCountryData('germany');
-    })
-    .then(async () => {
-        return getCountryData('china');
-    });
-*/
+// getCountryData('russian')
+//     .then(async () => {
+//         return getCountryData('usa');
+//     })
+//     .then(async () => {
+//         return getCountryData('portugal');
+//     })
+//     .then(async () => {
+//         return getCountryData('germany');
+//     })
+//     .then(async () => {
+//         return getCountryData('china');
+//     });
 
 //////////////////////////////////////////////////
 // Handling Rejected Promises
@@ -1133,6 +1121,7 @@ Promise.resolve('Hello').then(string => console.log(string)); // static method o
 Promise.reject(new Error('Bye')).catch(string => console.error(string));
 */
 
+/*
 //////////////////////////////////////////////////////////////
 // Promisifying the Geolocation API
 
@@ -1235,3 +1224,4 @@ const whereAmI = function () {
 };
 
 btn.addEventListener('click', whereAmI);
+*/
