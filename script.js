@@ -1,7 +1,6 @@
 'use strict';
 
 const btn = document.querySelector('.btn-country');
-const images = document.querySelector('.images');
 const countriesContainer = document.querySelector('.countries');
 
 ///////////////////////////////////////
@@ -1237,6 +1236,7 @@ const whereAmI = function (e) {
 btn.addEventListener('click', whereAmI);
 */
 
+/*
 ///////////////////////////////////////////////////////
 // Coding Challenge #2
 // For this challenge you will actually have to watch the video! Then, build the image
@@ -1280,16 +1280,19 @@ btn.addEventListener('click', whereAmI);
 
 // GOOD LUCK �
 
+const imgContainer = document.querySelector('.images');
+
 const createImage = imgPath => {
     return new Promise((resolve, reject) => {
         const img = document.createElement('img');
         img.src = imgPath;
 
         img.addEventListener('load', () => {
+            imgContainer.append(img);
             resolve(img);
         });
 
-        img.addEventListener('error', e => {
+        img.addEventListener('error', () => {
             reject(new Error('Cannot find the image to load!'));
         });
     });
@@ -1301,29 +1304,201 @@ const wait = (seconds = 2) => {
     });
 };
 
+let currentImg;
 createImage('img/img-1.jpg')
     .then(img => {
-        images.lastChild.style.display = 'flex';
-        images.insertAdjacentElement('beforeend', img);
+        console.log('Image 1 loaded');
+        currentImg = img;
 
         return wait();
     })
     .then(() => {
-        images.lastChild.style.display = 'none';
+        currentImg.style.display = 'none';
+        // images.removeChild(images.lastChild);
 
         return createImage('img/img-2.jpg');
     })
     .then(img => {
-        images.lastChild.style.display = 'flex';
-        images.insertAdjacentElement('beforeend', img);
+        console.log('Image 2 loaded');
+        currentImg = img;
 
         return wait();
     })
     .then(() => {
-        images.removeChild(images.lastChild);
+        currentImg.style.display = 'none';
+        // images.removeChild(images.lastChild);
 
         console.log('done');
     })
     .catch(err => {
         console.error(err.message);
     });
+*/
+
+/////////////////////////////////////////////////////
+// Consuming Promises with Async_Await
+
+const renderError = function (msg) {
+    countriesContainer.querySelector('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `<span class="error">${msg}</span>`
+    );
+};
+
+const renderCountry = function (
+    { flag, countryName, region, population, lang, cur },
+    className = ''
+) {
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+        <article class="country ${className}">
+            <img class="country__img" src="${flag}" />
+            <div class="country__data">
+                <h3 class="country__name">${countryName}</h3>
+                <h4 class="country__region">${region}</h4>
+                <p class="country__row"><span>👫</span>${(
+                    +population / 1_000_000
+                ).toFixed(1)} people</p>
+                <p class="country__row"><span>🗣️</span>${lang}</p>
+                <p class="country__row"><span>💰</span>${cur}</p>
+            </div>
+        </article>
+    `
+    );
+};
+
+const getPosition = () => {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+};
+
+// since ES2017, there is now an even better and easier way to consume promises, which is called async await.
+
+// asynchronous function that will basically keep running in the background while performing the code that inside of it, then when this function is done, it
+// automatically returns a promise, but more on that in the next video XD
+
+// what's important is that inside an async function we can have one or more await statements.
+// by using an async await our asynchronous code really looks and feels like synchronous code.
+// so we can simply await until the value of the promise is returned basically, and then just assign that value to a variable meant that is something that was impossible
+// before. So before we had to mess with callback functions and that was true in callback hell, but also by consuming promises with the "then" method
+// But now with an async await, that is just completely gone.
+// async await is in fact, simply syntactic sugar over the "then" method in promises. So of course behind the scenes, we are still using promises.
+// we are simply using a different way of consuming them.
+// async await is only about consuming promises. The way that we built them is not influenced in any way.
+const whereAmI = async function (e) {
+    e?.preventDefault();
+
+    try {
+        const position = await getPosition();
+        const { latitude: lat, longitude: lng } = position.coords;
+
+        const responseGeo = await fetch(
+            `https://geocode.xyz/${lat},${lng}?json=1&auth=458681501058928114518x51194`
+        );
+
+        if (!responseGeo.ok)
+            throw new Error(`Big problem getting location data`);
+
+        const { city, country } = await responseGeo.json();
+
+        const responseCountry = await fetch(
+            `https://restcountries.com/v2/name/${country}`
+        ); // But anyway, as soon as this promise here is resolved, then the value of this whole await expression
+        // that we have here is going to be the resolved value of the promise.
+        if (!responseCountry.ok) throw new Error('Big problem getting country');
+
+        // await will stop decode execution at this point of the function until the promise is fulfilled,
+        // so until the data has been fetched in this case, but now after that explanation, you might think isn't stopping the code, blocking the execution? Well, that's
+        // a really good question, but the answer is actually no, in this case, because stopping execution in an async function, which is what we have here is actually
+        // not a problem because this function is running asynchronously in the background. And so therefore it is not blocking the main threat of execution. And in fact,
+        // that's what's so special about a single wait. So it's the fact that it makes our code look like regular synchronous code while behind the scenes everything
+        // is in fact asynchronous.
+
+        const [obj] = await responseCountry.json(); // json method returns a new promise
+
+        const {
+            flag,
+            region,
+            name: countryName,
+            population,
+            currencies,
+            languages,
+        } = obj;
+
+        const [cur] = currencies;
+        const [lang] = languages;
+
+        renderCountry({
+            flag,
+            countryName,
+            region,
+            population,
+            lang: lang.name,
+            cur: cur.name,
+        });
+
+        return `You are in ${city}, ${country}`;
+    } catch (err) {
+        console.error(err);
+        renderError(`${err.message} 😃`);
+
+        // Reject promise returned from async function
+        throw err; // rethrowing the error means to basically throw the error again so that we can then propagate it down. And so with that, we will manually reject
+        // a promise that's returned from the async function.
+    } finally {
+        countriesContainer.style.opacity = 1;
+    }
+
+    // the old way
+    // fetch(`https://restcountries.com/v2/name/${country}`).then(response =>
+    //     console.log(response)
+    // );
+};
+
+console.log('1: Will get location');
+
+// IIFE (immediately-invoked function expressions)
+/*
+(async () => {
+    try {
+        const city = await whereAmI();
+        console.log(`2: ${city} ✔`);
+    } catch (err) {
+        console.error(`2: ${err.message} 💥`);
+    } finally {
+        console.log('3: Finished getting location');
+    }
+})();
+*/
+// an async function always returns a promise. If we think about this, then it actually makes sense that here we get a promise
+// and not the value that we would like to get so the string. The reason for that is that at the moment, JavaScript has simply no way of knowing what will be returned
+// from the function because the function is still running, but it is also not blocking the code out here. And so therefore all that this function does return is a
+// promise. Now the value that we return from an async function, so again, that's this string will become the fulfilled value of the promise that is returned by the
+// function. Again, in the "then" handler, "city" argument that will be passed into the callback function is going to be the resolved value of the promise. So one more
+// time, that is the string that is returned by the async function
+
+btn.addEventListener('click', async () => {
+    try {
+        const city = await whereAmI();
+        console.log(`2: ${city} ✔`);
+    } catch (err) {
+        console.error(`2: ${err.message} 💥`);
+    } finally {
+        console.log(`3: Finished getting location`);
+    }
+});
+
+///////////////////////////////////////////////////
+// Error Handling With try...catch
+// try catch statement has nothing to do with an async await, but we can still use it to catch errors in async functions.
+
+// try {
+//     let y = 1;
+//     const x = 2;
+//     x = 3;
+// } catch (err) {
+//     alert(err.message);
+// }
