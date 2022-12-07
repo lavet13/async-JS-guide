@@ -1335,6 +1335,7 @@ createImage('img/img-1.jpg')
     });
 */
 
+/*
 /////////////////////////////////////////////////////
 // Consuming Promises with Async_Await
 
@@ -1459,7 +1460,7 @@ const whereAmI = async function (e) {
 };
 
 console.log('1: Will get location');
-
+*/
 // IIFE (immediately-invoked function expressions)
 /*
 (async () => {
@@ -1480,16 +1481,16 @@ console.log('1: Will get location');
 // function. Again, in the "then" handler, "city" argument that will be passed into the callback function is going to be the resolved value of the promise. So one more
 // time, that is the string that is returned by the async function
 
-btn.addEventListener('click', async () => {
-    try {
-        const city = await whereAmI();
-        console.log(`2: ${city} ✔`);
-    } catch (err) {
-        console.error(`2: ${err.message} 💥`);
-    } finally {
-        console.log(`3: Finished getting location`);
-    }
-});
+// btn.addEventListener('click', async () => {
+//     try {
+//         const city = await whereAmI();
+//         console.log(`2: ${city} ✔`);
+//     } catch (err) {
+//         console.error(`2: ${err.message} 💥`);
+//     } finally {
+//         console.log(`3: Finished getting location`);
+//     }
+// });
 
 ///////////////////////////////////////////////////
 // Error Handling With try...catch
@@ -1502,3 +1503,185 @@ btn.addEventListener('click', async () => {
 // } catch (err) {
 //     alert(err.message);
 // }
+
+// const imgContainer = document.querySelector('.images');
+
+// const createImage = imgPath => {
+//     return new Promise((resolve, reject) => {
+//         const img = document.createElement('img');
+//         img.src = imgPath;
+
+//         img.addEventListener('load', () => {
+//             imgContainer.append(img);
+//             resolve(img);
+//         });
+
+//         img.addEventListener('error', () => {
+//             reject(new Error('Cannot find the image to load!'));
+//         });
+//     });
+// };
+
+// const wait = (seconds = 2) => {
+//     return new Promise(resolve => {
+//         setTimeout(() => {
+//             console.log(`timed about ${seconds} seconds`);
+//             resolve();
+//         }, seconds * 1000);
+//     });
+// };
+
+// (async () => {
+//     try {
+//         let img = await createImage('img/img-1.jpg');
+//         await wait();
+//         img.style.display = 'none';
+//         img = await createImage('img/img-2.jpg');
+//         await wait();
+//         img.style.display = 'none';
+//     } catch (err) {
+//         console.error(err.message);
+//     } finally {
+//         console.log('done');
+//     }
+// })();
+
+///////////////////////////////////////////////////
+// Running Promises in Parallel
+
+// So whenever we have a situation in which you need to do multiple asynchronous operations at the same time and operations that don't depend on one another,
+// then you should always, always run them in parallel. This is more common than you might think. So I need to keep this technique in mind because your users will ty.
+
+const renderError = function (msg) {
+    countriesContainer.querySelector('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `<span class="error">${msg} ¯\\_(ツ)_/¯</span>`
+    );
+};
+
+const renderCountry = function (
+    { flag, countryName, region, population, lang, cur },
+    className = ''
+) {
+    countriesContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+        <article class="country ${className}">
+            <img class="country__img" src="${flag}" />
+            <div class="country__data">
+                <h3 class="country__name">${countryName}</h3>
+                <h4 class="country__region">${region}</h4>
+                <p class="country__row"><span>👫</span>${(
+                    +population / 1_000_000
+                ).toFixed(1)} people</p>
+                <p class="country__row"><span>🗣️</span>${lang}</p>
+                <p class="country__row"><span>💰</span>${cur}</p>
+            </div>
+        </article>
+    `
+    );
+};
+
+// const renderTheCountry = async function (country) {
+//     try {
+//         const [data] = await getJSON(
+//             `https://restcountries.com/v2/name/${country}`
+//         );
+
+//         const {
+//             flag,
+//             name: countryName,
+//             region,
+//             population,
+//             languages,
+//             currencies,
+//         } = data;
+
+//         const [lang] = languages;
+//         const [cur] = currencies;
+
+//         renderCountry({
+//             flag,
+//             countryName,
+//             region,
+//             population,
+//             lang: lang.name,
+//             cur: cur.name,
+//         });
+//     } catch (err) {
+//         console.error(err);
+
+//         throw err;
+//     }
+// };
+
+const getJSON = function (url, msg = `Cannot fetch the country!`) {
+    console.log(url);
+    return fetch(url).then(res => {
+        if (!res.ok) throw new Error(msg);
+
+        return res.json();
+    });
+};
+
+const getThreeCountries = async function (c1, c2, c3) {
+    try {
+        // const [data1] = await getJSON(
+        //     `https://restcountries.com/v2/name/${c1}`
+        // );
+        // const [data2] = await getJSON(
+        //     `https://restcountries.com/v2/name/${c2}`
+        // );
+        // const [data3] = await getJSON(
+        //     `https://restcountries.com/v2/name/${c3}`
+        // );
+
+        // console.log([data1.capital, data2.capital, data3.capital]);
+
+        // kind of a helper function on this promise constructor which returns a new promise
+        // if one of the promises rejects, then the whole promise.all actually rejects as well. So we say that promise.all short circuits when one promise rejects.
+        // So again, one rejected promise is enough for the entire thing to reject as well.
+        const data = await Promise.all([
+            getJSON(`https://restcountries.com/v2/name/${c1}`),
+            getJSON(`https://restcountries.com/v2/name/${c2}`),
+            getJSON(`https://restcountries.com/v2/name/${c3}`),
+        ]);
+
+        // promise.all constructor, so it's called a combinator function because it allows us to combine multiple promises. And there are actually other combinator
+        // functions.
+
+        console.log(data.map(([country]) => country.capital));
+    } catch (err) {
+        console.error(err);
+        renderError(err.message);
+    } finally {
+        countriesContainer.style.opacity = 1;
+    }
+};
+
+getThreeCountries('russian', 'usa', 'portugal');
+
+///////////////////////////////////////////////////////
+// Other Promise Combinators_ race, allSettled and any
+
+// Promise.race - just like other combinators, receives an array of promises and it also returns a promise. Now this promise returned by Promise.race is settled as soon
+// as one of the input promises settles and remember that settled simply means that a value is available, but it doesn't matter if the promise got rejected or fulfilled
+// And so in Promise.race basically the first settled promise wins the race.
+
+(async () => {
+    try {
+        const data = await Promise.race([
+            getJSON(`https://restcountries.com/v2/name/india`),
+            getJSON(`https://restcountries.com/v2/name/canada`),
+            getJSON(`https://restcountries.com/v2/name/germany`),
+        ]); // Promise.race short circuits whenever one of the promises gets settled, means that no matter if fulfilled or rejected
+
+        const [country] = data;
+        console.log(country.name); // country
+        console.log(country.capital); // capital
+    } catch (err) {
+        console.error(err);
+        renderError(err.message);
+    }
+})();
