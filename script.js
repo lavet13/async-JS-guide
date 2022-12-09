@@ -1642,8 +1642,7 @@ const getThreeCountries = async function (c1, c2, c3) {
 
         // it's takes in an array of promises and returns a new promise
         // if one of the promises rejects, then the whole promise.all actually rejects as well. So we say that promise.all short circuits when one promise rejects.
-        // So again, one rejected promise is enough for the entire thing to reject as well.
-        // we are getting an array of all the results (in our case there are three results)
+        // We are getting back an array of all the results (in our case there are three results)
 
         const data = await Promise.all([
             getJSON(`https://restcountries.com/v2/name/${c1}`),
@@ -1679,7 +1678,7 @@ console.log(
         try {
             // We only getting one result and not an array of the results of all the three
             const data = await Promise.race([
-                getJSON(`https://restcountries.com/v2/name/india`),
+                getJSON(`https://restcountries.com/v2/name/india111`),
                 getJSON(`https://restcountries.com/v2/name/canada`),
                 getJSON(`https://restcountries.com/v2/name/germany`),
             ]); // Promise.race short circuits whenever one of the promises gets settled, means that no matter if fulfilled or rejected
@@ -1700,7 +1699,7 @@ console.log(
             console.error(err);
             renderError(err.message);
 
-            throw err;
+            // throw err;
         }
     })()
 );
@@ -1761,7 +1760,7 @@ Promise.allSettled([
 Promise.any([
     Promise.resolve('Success'),
     Promise.reject(new Error('ERROR')),
-    Promise.resolve('Another success'),
+    Promise.reject('Another success'),
 ])
     .then(data => {
         console.log(data);
@@ -1830,24 +1829,41 @@ const renderError = function (msg) {
     );
 };
 
-const wait = (seconds = 2) =>
-    new Promise(resolve => setTimeout(resolve, seconds * 1000));
+// Part 1
+// const wait = (seconds = 2) =>
+//     new Promise(resolve => setTimeout(resolve, seconds * 1000));
 
-const loadNPause = async function () {
+// const loadNPause = async function () {
+//     try {
+//         let img = await createImage('img/img-1.jpg');
+//         await wait();
+//         img.style.display = 'none';
+
+//         img = await createImage('img/img-2.jpg');
+//         await wait();
+//         img.style.display = 'none';
+
+//         console.log('done');
+//     } catch (err) {
+//         console.error(err);
+//         renderError(err.message);
+//     }
+// };
+
+// loadNPause();
+
+// Part 2
+const loadAll = async function (imgArr) {
     try {
-        let img = await createImage('img/img-1.jpg');
-        await wait();
-        img.style.display = 'none';
-
-        img = await createImage('img/img-2.jpg');
-        await wait();
-        img.style.display = 'none';
-
-        console.log('done');
+        let imgs = imgArr.map(async imgPath => await createImage(imgPath));
+        const imgsEl = await Promise.all(imgs);
+        imgsEl.forEach(img => img.classList.add('parallel'));
+        console.log(imgsEl);
     } catch (err) {
         console.error(err);
-        renderError(err.message);
     }
 };
 
-loadNPause();
+loadAll(['img/img-1.jpg', 'img/img-2.jpg', 'img/img-3.jpg']);
+
+// TRY OUT ON NEIGHBOUR COUNTRIES
