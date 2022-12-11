@@ -407,8 +407,31 @@ request
     });
 */
 
-/*
 /////////////////////////////////////////////////////////////////////////////
+const getJSON = function (url, msg = 'Cannot get country!') {
+    return fetch(url).then(res => {
+        if (!res.ok) throw new Error(msg);
+
+        return res.json();
+    });
+};
+
+// FIXME rewind everything about closures in JavaScript
+const timeout = (seconds = 10) =>
+    new Promise((_, reject) =>
+        setTimeout(
+            () => reject(new Error(`Timeout ${seconds}`)),
+            seconds * 1000
+        )
+    );
+
+const renderError = function (msg) {
+    countriesContainer.nextElementSibling.closest('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'afterend',
+        `<span class="error">${msg}</span>`
+    );
+};
 
 const renderCountry = function (
     { flag, countryName, region, population, lang, cur },
@@ -433,18 +456,15 @@ const renderCountry = function (
     );
 };
 
-const getCountryData = function (country) {
-    let borders;
+const getCountryData = async function (country) {
+    try {
+        const [obj] = await Promise.race([
+            getJSON(`https://restcountries.com/v2/name/${country}`),
+            timeout(),
+        ]);
 
-    const getNextCountry = (url, msg = 'Cannot get border countries!') => {
-        return fetch(url).then(response => {
-            if (!response.ok) throw new Error(msg);
+        console.log(obj);
 
-            return response.json();
-        });
-    };
-
-    const getNextCountryData = function (obj) {
         const {
             flag,
             region,
@@ -452,33 +472,32 @@ const getCountryData = function (country) {
             population,
             currencies,
             languages,
+            borders,
         } = obj;
 
         const [cur] = currencies;
         const [lang] = languages;
 
-        renderCountry(
-            {
-                flag,
-                countryName,
-                region,
-                population,
-                lang: lang.name,
-                cur: cur.name,
-            },
-            'neighbour'
+        renderCountry({
+            flag,
+            countryName,
+            region,
+            population,
+            lang: lang.name,
+            cur: cur.name,
+        });
+
+        if (!borders) return;
+
+        const neighbours = borders.map(
+            async border =>
+                await getJSON(`https://restcountries.com/v2/alpha/${border}`)
         );
-    };
 
-    return fetch(`https://restcountries.com/v2/name/${country}`) // immediately return a promise <pending>
-        .then(response => {
-            if (!response.ok) throw new Error('Cannot get countries!');
-            return response.json();
-        })
-        .then(data => {
-            const [obj] = data;
-            console.log(obj);
+        const neighbourResults = await Promise.all(neighbours);
+        console.log(neighbourResults);
 
+        neighbourResults.forEach(obj => {
             const {
                 flag,
                 region,
@@ -486,52 +505,59 @@ const getCountryData = function (country) {
                 population,
                 currencies,
                 languages,
-                borders: b,
             } = obj;
-
-            borders = b;
 
             const [cur] = currencies;
             const [lang] = languages;
 
-            countriesContainer.style.opacity = 1;
-
-            renderCountry({
-                flag,
-                countryName,
-                region,
-                population,
-                lang: lang.name,
-                cur: cur.name,
-            });
-
-            const [anyNeighbour] = borders;
-
-            if (!anyNeighbour) return;
+            renderCountry(
+                {
+                    flag,
+                    countryName,
+                    region,
+                    population,
+                    lang: lang.name,
+                    cur: cur.name,
+                },
+                'neighbour'
+            );
         });
+    } catch (err) {
+        throw err;
+    }
 };
 
-// getCountryData('russian')
-//     .then(async () => {
-//         return getCountryData('usa');
-//     })
-//     .then(async () => {
-//         return getCountryData('portugal');
-//     })
-//     .then(async () => {
-//         return getCountryData('germany');
-//     })
-//     .then(async () => {
-//         return getCountryData('china');
-//     });
-*/
+btn.addEventListener('click', async () => {
+    try {
+        btn.insertAdjacentHTML(
+            'beforebegin',
+            `<img src="img/spinner-loading.gif" alt="spinner">`
+        );
+
+        await getCountryData('russian');
+        await getCountryData('usa');
+        await getCountryData('portugal');
+        await getCountryData('germany');
+        await getCountryData('china');
+        await getCountryData('australia');
+    } catch (err) {
+        console.error(err);
+        renderError(err.message);
+    } finally {
+        document.querySelector('.btn-country').previousElementSibling.remove();
+        countriesContainer.classList.add('visible');
+    }
+});
 
 //////////////////////////////////////////////////
 // Handling Rejected Promises
 /*
 const renderError = function (msg) {
-    countriesContainer.removeChild(countriesContainer.lastChild);
-    countriesContainer.insertAdjacentText('beforeend', msg);
+    countriesContainer.nextElementSibling.closest('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'afterend',
+        `<span class="error">${msg}</span>`
+    );
 };
 
 const renderCountry = function (
@@ -807,8 +833,11 @@ GOOD LUCK �
 
 /*
 const renderError = function (msg) {
-    countriesContainer.removeChild(countriesContainer.lastChild);
-    countriesContainer.insertAdjacentText('beforeend', msg);
+    countriesContainer.nextElementSibling.closest('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'afterend',
+        `<span class="error">${msg}</span>`
+    );
 };
 
 const renderCountry = function (
@@ -974,7 +1003,7 @@ whereAmI(-33.933, 18.474);
 // who decides which code will be executed next. But the engine itself simply executes whatever code it has given. Okay, so, this is of course, a lot to take in.
 
 // recap: So, the image started loading asynchronously in the web APIs environment and not in the call stack. We then used addEventListener to attach a callback function
-// to the image load event. And this callback is basically our asynchronous code. It's code that we deferred into the future because we only want to execute it once the
+// to the image load event. And this callback is basically our asynchronous code. It's code that we deferred(отложен) into the future because we only want to execute it once the
 // image has loaded. And in the meantime, the rest of the code kept running. Now addEventListener did not put the callback directly in the callback queue. It simply
 // registered the callback, which then kept waiting in the web APIs environment until the load event was fired off. Only then the environment put the callback into queue.
 // Then while in the queue the callback kept waiting for the event loop to pick it up and put it on the call stack. And this happened as soon as the callback was first
@@ -1066,15 +1095,6 @@ const lotteryPromise = new Promise(function (resolve, reject) {
 // callback function that is going to be called with the resolved value of the promise.
 lotteryPromise.then(res => console.log(res)).catch(err => console.error(err));
 
-// i dunno what am i looking at
-// const wait = function (seconds) {
-//     return Promise.resolve(seconds).then(seconds => {
-//         setTimeout(() => console.log(seconds), seconds * 1000);
-//     });
-// };
-
-// wait(2);
-
 // Promisifying setTimeout
 const wait = function (seconds) {
     // this will then encapsulate the asynchronous operation even further
@@ -1138,8 +1158,11 @@ const getPosition = () => {
 };
 
 const renderError = function (msg) {
-    countriesContainer.removeChild(countriesContainer.lastChild);
-    countriesContainer.insertAdjacentText('beforeend', msg);
+    countriesContainer.nextElementSibling.closest('.error')?.remove();
+    countriesContainer.insertAdjacentHTML(
+        'afterend',
+        `<span class="error">${msg}</span>`
+    );
 };
 
 const renderCountry = function (
@@ -1678,7 +1701,7 @@ console.log(
         try {
             // We only getting one result and not an array of the results of all the three
             const data = await Promise.race([
-                getJSON(`https://restcountries.com/v2/name/india111`),
+                getJSON(`https://restcountries.com/v2/name/india`),
                 getJSON(`https://restcountries.com/v2/name/canada`),
                 getJSON(`https://restcountries.com/v2/name/germany`),
             ]); // Promise.race short circuits whenever one of the promises gets settled, means that no matter if fulfilled or rejected
@@ -1690,7 +1713,7 @@ console.log(
                 console.log(firstCountry.capital, secondCountry.capital);
             };
 
-            if (data.length >= 2) return twoCountries();
+            if (data.length >= 2) return twoCountries(); // array might be containing two objects
 
             const [country] = data;
             console.log(country.name); // country
@@ -1801,6 +1824,7 @@ Test data Part 2: ['img/img-1.jpg', 'img/img-2.jpg', 'img/img3.jpg']. To test, t
 
 GOOD LUCK �
 */
+/*
 
 const images = document.querySelector('.images');
 
@@ -1811,8 +1835,8 @@ const createImage = function (imgPath) {
         img.src = imgPath;
 
         img.addEventListener('load', () => {
-            resolve(img);
             images.append(img);
+            resolve(img);
         });
 
         img.addEventListener('error', () => {
@@ -1865,5 +1889,4 @@ const loadAll = async function (imgArr) {
 };
 
 loadAll(['img/img-1.jpg', 'img/img-2.jpg', 'img/img-3.jpg']);
-
-// TRY OUT ON NEIGHBOUR COUNTRIES
+*/
