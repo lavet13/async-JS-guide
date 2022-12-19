@@ -544,7 +544,10 @@ btn.addEventListener('click', async () => {
         console.error(err);
         renderError(err.message);
     } finally {
-        document.querySelector('.btn-country').previousElementSibling.remove();
+        document
+            .querySelector('.btn-country')
+            ?.previousElementSibling?.remove();
+
         countriesContainer.classList.add('visible');
     }
 });
@@ -1845,13 +1848,13 @@ const createImage = function (imgPath) {
     });
 };
 
-const renderError = function (msg) {
-    countriesContainer.nextElementSibling.closest('.error')?.remove();
-    countriesContainer.insertAdjacentHTML(
-        'afterend',
-        `<span class="error">${msg}</span>`
-    );
-};
+// const renderError = function (msg) {
+//     countriesContainer.nextElementSibling.closest('.error')?.remove();
+//     countriesContainer.insertAdjacentHTML(
+//         'afterend',
+//         `<span class="error">${msg}</span>`
+//     );
+// };
 
 // Part 1
 // const wait = (seconds = 2) =>
